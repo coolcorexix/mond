@@ -72,3 +72,7 @@ declare module '*.module.sass' {
   const classes: { readonly [key: string]: string }
   export default classes
 }
+declare module '@metamask/logo' {
+   const ModelViewer: any;
+   export default ModelViewer;
+}

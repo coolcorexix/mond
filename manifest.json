@@ -13,7 +13,7 @@
       "js": ["contentscript.js"]
     }
   ],
-  "permissions": ["tabs",  "activeTab"],
+  "permissions": ["tabs",  "activeTab", "storage"],
   "run_at": "startup",
   "background": {
     "scripts": ["background.js"],
