@@ -2,6 +2,42 @@ chrome.runtime.onStartup.addListener(function () {
   chrome.runtime.openOptionsPage();
 });
 
+
+chrome.runtime.onInstalled.addListener(function() {
+  const modes = [
+    {
+      name: "9-5",
+      tabsToOpen: [
+        "https://saleshood.content-stage.saleshood.com/",
+        "https://saleshood.atlassian.net/jira/software/c/projects/DEV/boards/101",
+      ],
+      siteToBlock: ["facebook.com", "twitter.com"],
+    },
+    {
+      name: "freelance",
+      tabsToOpen: [
+        "https://trello.com/b/I25lKdLI/intaface",
+        "https://intaface.me/create",
+      ],
+      siteToBlock: [],
+    },
+    {
+      name: "indie hacking",
+      tabsToOpen: [],
+      siteToBlock: ["facebook.com", "youtube.com"],
+    },
+    {
+      name: "Internet explorer",
+      tabsToOpen: ["https://nemothecollector.dev/read2"],
+      siteToBlock: [],
+    },
+    {
+      name: "doing something offscreen",
+    },
+  ];
+  chrome.storage.local.set({ 'modes': JSON.stringify(modes) });
+});
+
 chrome.runtime.onMessage.addListener(function (message) {
   if (message.action === "setMode") {
     const { mode } = message.data;

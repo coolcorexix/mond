@@ -2,10 +2,7 @@
   "name": "Open Settings",
   "version": "1.0",
   "description": "Opens the Chrome settings page when the browser is opened.",
-  "manifest_version": 2,
-  "browser_action": {
-    "default_popup": "popup/popup.html"
-  },
+  "manifest_version": 3,
   "options_page": "options-vite-app/dist/index.html",
   "content_scripts": [
     {
@@ -14,9 +11,7 @@
     }
   ],
   "permissions": ["tabs",  "activeTab", "storage"],
-  "run_at": "startup",
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   }
 }

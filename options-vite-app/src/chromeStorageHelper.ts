@@ -8,7 +8,7 @@ export function getAnObjectFromLocalStorage(key: string) {
             if (result[key]) {
                 resolve(JSON.parse(result[key]));
             } else {
-                reject();
+                resolve(null)
             }
         });
     });

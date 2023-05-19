@@ -1,42 +1,47 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ModelViewer from "@metamask/logo";
-import { getAnObjectFromLocalStorage, writeAnObjectToLocalStorage } from "./chromeStorageHelper";
-
-const modes = [
-  {
-    name: "9-5",
-    tabsToOpen: [
-      "https://saleshood.content-stage.saleshood.com/",
-      "https://saleshood.atlassian.net/jira/software/c/projects/DEV/boards/101",
-    ],
-    siteToBlock: ["facebook.com", "twitter.com"],
-  },
-  {
-    name: "freelance",
-    tabsToOpen: [
-      "https://trello.com/b/I25lKdLI/intaface",
-      "https://intaface.me/create",
-    ],
-  },
-  {
-    name: "indie hacking",
-    siteToBlock: ["facebook.com", "youtube.com"],
-  },
-  {
-    name: "Internet explorer",
-    tabsToOpen: ["https://nemothecollector.dev/read2"],
-  },
-  {
-    name: "doing something offscreen",
-  },
-];
+import {
+  getAnObjectFromLocalStorage,
+  writeAnObjectToLocalStorage,
+} from "./chromeStorageHelper";
 
 function App() {
+  const [modes, setModes] = useState([]);
+
   const [selectedMode, setSelectedMode] = useState<{
     name: string;
     tabsToOpen?: string[];
     siteToBlock?: string[];
   }>(null);
+  const removeUrlFromList = useCallback(async (section: 'tabsToOpen' | 'siteToBlock', urlToRemove: string) => {
+    const newUrlList = selectedMode[section].filter((url) => url !== urlToRemove);
+    selectedMode[section] = newUrlList;
+    const storedModesToUpdate: any =
+      await getAnObjectFromLocalStorage("modes");
+    // replace mode in modes with selectedMode
+    let modeToUpdate = storedModesToUpdate.find(
+      (mode: any) => mode.name === selectedMode.name
+    );
+    modeToUpdate[section] = selectedMode[section];
+    writeAnObjectToLocalStorage(
+      "modes",
+      storedModesToUpdate
+    );
+    setModes(storedModesToUpdate);
+    if (section === 'siteToBlock') {
+      alert('If you already start the mode, please restart the browser for this change to take effect');
+    }
+  }, [selectedMode]);
+  useEffect(() => {
+    getAnObjectFromLocalStorage("modes").then((storedModes: any) => {
+      console.log(
+        "🚀 ~ file: App.tsx:20 ~ getAnObjectFromLocalStorage ~ storedModes:",
+        storedModes
+      );
+
+      setModes(storedModes);
+    });
+  }, []);
   useEffect(() => {
     const container = document.getElementById("logo-container");
     if (container?.hasChildNodes()) {
@@ -66,7 +71,6 @@ function App() {
       ? container.replaceChild(container.firstChild, viewer.container)
       : container.appendChild(viewer.container);
   }, []);
- 
 
   return (
     <div
@@ -109,6 +113,13 @@ function App() {
               marginBottom: 16,
             }}
             onClick={() => {
+              
+              if (mode.name === "doing something offscreen") {
+                // close browser
+                alert("Turn off your computer and go outside");
+                window.close();
+                return;
+              }
               setSelectedMode(mode);
             }}
           >
@@ -116,79 +127,130 @@ function App() {
           </button>
         ))}
       </div>
-      {
-        !!selectedMode &&   <div style={{
-          padding: 16,
-          background: "yellow",
-        }}>
-        <h1>Mode to set: {selectedMode?.name}</h1>
-
-        <div style={{
-          marginBottom: 16,
-        }}>
-          These sites will be opened in advance:
-          <ul>
-            {selectedMode?.tabsToOpen?.map((url) => (
-              <li>{url}</li>
-            ))}
-          </ul>
-          <button onClick={async () => {
-            const urlToAdd = prompt("Enter url to open in advance");
-            let modes: any = await getAnObjectFromLocalStorage("modes") || {
-              [selectedMode.name]: [
-                {
-                  tabsToOpen: [],
-                  siteToBlock: [],
-                }
-              ]
-            };
-            console.log("🚀 ~ file: App.tsx:145 ~ letmodes:any=awaitgetAnObjectFromLocalStorage ~ modes:", modes)
-            modes[selectedMode.name].tabsToOpen = [...modes[selectedMode.name].tabsToOpen, urlToAdd];
-            writeAnObjectToLocalStorage("modes", modes);
-          }}>
-            + Add url to open in advance v2
-          </button>
-        </div>
-        <div>
-          These sites will be blocked:
-        </div>
-        <ul>
-          {selectedMode?.siteToBlock?.map((url) => (
-            <li>{url}</li>
-          ))}
-        </ul>
-        <button>
-          + Add site to block
-        </button>
-<div>
-  </div>
-        <button
+      {!!selectedMode && (
+        <div
           style={{
-            marginTop: 32,
-          }}
-          onClick={() => {
-            chrome.runtime.sendMessage({
-              action: 'setMode',
-              data: {
-                mode: selectedMode,
-              }
-            })
-            selectedMode.tabsToOpen?.forEach((url) => {
-              chrome.tabs.create({ url });
-            });
-            // window.close();
-            if (selectedMode.name === "doing something offscreen") {
-              // close browser
-              alert("Turn off your computer and go outside");
-            }
-            window.close();
+            padding: 16,
+            background: "yellow",
           }}
         >
-          Ok
-        </button>
-      </div>
-      }
-    
+          <h1>Mode to set: {selectedMode?.name}</h1>
+
+          <div
+            style={{
+              marginBottom: 16,
+            }}
+          >
+            These sites will be opened in advance:
+            <ul>
+              {selectedMode?.tabsToOpen?.map((url) => (
+                <li>
+                  <div>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {url}
+                    </a>
+                    <button
+                      onClick={() => {
+                        removeUrlFromList('tabsToOpen', url);
+                      }}
+                    >
+                      x
+                    </button>
+
+                  </div>
+                </li>
+                
+                
+              ))}
+            </ul>
+            <button
+              onClick={async () => {
+                const urlToAdd = prompt("Enter url to open in advance");
+                let modes: any = await getAnObjectFromLocalStorage("modes");
+  
+                selectedMode.tabsToOpen = [
+                  ...selectedMode.tabsToOpen,
+                  urlToAdd,
+                ];
+                // replace mode in modes with selectedMode
+                const modeToUpdate = modes.find(
+                  (mode: any) => mode.name === selectedMode.name
+                );
+                modeToUpdate.tabsToOpen = selectedMode.tabsToOpen;
+
+                // modes.find((mode: any) => mode.name === selectedMode.name) = selectedMode;
+                writeAnObjectToLocalStorage("modes", modes);
+                setModes(modes);
+              }}
+            >
+              + Add url to open in advance
+            </button>
+          </div>
+          <div>These sites will be blocked:</div>
+          <ul>
+            {selectedMode?.siteToBlock?.map((url) => (
+              <li>
+                <div>
+                  <a href={url} target="_blank" rel="noreferrer">
+                    {url}
+                  </a>
+                  <button
+                    onClick={() => {
+                      removeUrlFromList('siteToBlock', url);
+                    }}
+                  >
+                    x
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={async () => {
+              const urlToAdd = prompt("Enter url to block");
+              selectedMode.siteToBlock = [
+                ...selectedMode.siteToBlock,
+                urlToAdd,
+              ];
+              const storedModesToUpdate: any =
+                await getAnObjectFromLocalStorage("modes");
+              // replace mode in modes with selectedMode
+              let modesToUpdate = storedModesToUpdate.find(
+                (mode: any) => mode.name === selectedMode.name
+              );
+              modesToUpdate.siteToBlock = selectedMode.siteToBlock;
+              writeAnObjectToLocalStorage("modes", storedModesToUpdate);
+              setModes(storedModesToUpdate);
+            }}
+          >
+            + Add site to block
+          </button>
+
+          <button
+            style={{
+              marginTop: 32,
+            }}
+            onClick={async () => {
+              chrome.runtime.sendMessage({
+                action: "setMode",
+                data: {
+                  mode: selectedMode,
+                },
+              });
+              if (!selectedMode.tabsToOpen || selectedMode.tabsToOpen?.length === 0) {
+                await chrome.tabs.create({ url: "chrome://newtab" });
+              }
+              selectedMode.tabsToOpen?.forEach((url) => {
+                chrome.tabs.create({ url });
+              });
+
+              window.close();
+            }}
+          >
+            Ok
+          </button>
+        </div>
+      )}
     </div>
   );
 }
